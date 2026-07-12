@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   QuantLab — iOS Design System
+   Font: SF Pro (system stack), Light theme default
+   ============================================================ */
+
+@layer base {
+  :root {
+    /* iOS Light palette */
+    --background: 240 24% 97%;          /* systemGroupedBackground #F2F2F7 */
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 211 100% 50%;            /* iOS systemBlue #007AFF */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 24% 95%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 240 24% 96%;
+    --muted-foreground: 240 4% 46%;     /* iOS secondaryLabel */
+    --accent: 240 24% 95%;
+    --accent-foreground: 211 100% 50%;
+    --destructive: 3 100% 59%;          /* iOS systemRed #FF3B30 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 11% 91%;
+    --input: 240 11% 91%;
+    --ring: 211 100% 50%;
+    --radius: 0.875rem;
+    --success: 145 64% 42%;             /* iOS systemGreen #34C759-ish */
+    --warning: 35 100% 50%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* iOS Dark palette */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 240 3% 11%;                 /* #1C1C1E secondarySystemGroupedBackground */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 3% 15%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 210 100% 52%;            /* iOS systemBlue dark #0A84FF */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3% 17%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 3% 17%;
+    --muted-foreground: 240 5% 62%;
+    --accent: 240 3% 17%;
+    --accent-foreground: 210 100% 52%;
+    --destructive: 3 100% 61%;          /* #FF453A */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 3% 22%;
+    --input: 240 3% 22%;
+    --ring: 210 100% 52%;
+    --success: 145 64% 47%;
+    --warning: 36 100% 52%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+      "Helvetica Neue", "Inter", system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv01", "cv11";
+    letter-spacing: -0.011em;
+    overscroll-behavior: none;
+  }
+  .font-mono-num {
+    font-family: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* iOS glass surface */
+  .glass {
+    background: color-mix(in srgb, hsl(var(--card)) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .glass-strong {
+    background: color-mix(in srgb, hsl(var(--card)) 88%, transparent);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+  }
+  /* iOS card with soft shadow */
+  .ios-card {
+    @apply rounded-2xl bg-card;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .dark .ios-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+  /* iOS pressed feedback */
+  .ios-press {
+    transition: transform 0.12s ease, opacity 0.12s ease, background-color 0.2s ease;
+  }
+  .ios-press:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+  /* Hide scrollbars for clean iOS feel */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
+
+/* Monaco editor container radius overflow fix */
+.monaco-editor, .monaco-editor-background, .monaco-editor .margin {
+  border-radius: 0;
+}

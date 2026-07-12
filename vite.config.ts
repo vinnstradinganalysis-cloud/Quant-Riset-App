@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename)
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  base: './',
+  base: process.env.VITE_BASE_PATH || "/Quant-Riset-App",
   // inspectAttr hanya untuk mode dev — di production build ia merusak file JS node_modules
   plugins: command === 'serve' ? [inspectAttr(), react()] : [react()],
   server: {

@@ -1,7 +1,12 @@
-import path from "path"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
+
+// Solusi aman untuk mendefinisikan __dirname di lingkungan ESM
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
@@ -28,4 +33,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}));
+}))

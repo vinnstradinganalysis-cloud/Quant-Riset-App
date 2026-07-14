@@ -1,16 +1,11 @@
-import path from "node:path"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath } from "url"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
-// Solusi aman untuk mendefinisikan __dirname di lingkungan ESM
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  base: process.env.VITE_BASE_PATH || "/Quant-Riset-App",
+  base: './',
   // inspectAttr hanya untuk mode dev — di production build ia merusak file JS node_modules
   plugins: command === 'serve' ? [inspectAttr(), react()] : [react()],
   server: {
@@ -18,10 +13,13 @@ export default defineConfig(({ command }) => ({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      // Menggunakan cara modern ESM (bebas dari error __dirname di Vercel)
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
   build: {
+    outDir: 'dist',      // Menentukan folder output secara eksplisit
+    emptyOutDir: true,   // Memaksa Vite membersihkan folder dist sebelum menulis file baru
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
       output: {
@@ -33,4 +31,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}))
+}));

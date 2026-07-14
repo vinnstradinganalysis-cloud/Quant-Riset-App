@@ -62,6 +62,7 @@ const toVolData = (cs: Candle[]) =>
 
 export default function ChartModule() {
   const theme = useGlobalState((s) => s.theme)
+  const activeTab = useGlobalState((s) => s.activeTab)
   const datasets = useDataStore((s) => s.datasets)
   const selectedPairId = useDataStore((s) => s.selectedPairId)
   const setSelectedPair = useDataStore((s) => s.setSelectedPair)
@@ -136,7 +137,11 @@ export default function ChartModule() {
 
   /* ---------- Top Bar contextual ---------- */
   useEffect(() => {
+    // FIX: Cegah re-render/penimpaan jika tab ini sedang tidak aktif
+    if (activeTab !== 'chart') return
+
     const indicatorScripts = scripts.filter((s) => s.type === 'indicator')
+    
     setTopBarCenter(
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar max-w-full">
         {/* Pair Selector */}
@@ -213,9 +218,13 @@ export default function ChartModule() {
         </button>
       </div>,
     )
-    return () => setTopBarCenter(null)
+    
+    // Opsional: Hapus fungsi cleanup `return () => setTopBarCenter(null)`
+    // untuk mencegah race-condition tab saling mematikan TopBar.
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    activeTab, // FIX: Wajib menambahkan ini ke dependency array
     datasets,
     selectedPairId,
     chartTimeframe,

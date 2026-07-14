@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createChart,
-  CandlestickSeries,
-  HistogramSeries,
-  LineSeries,
-  createSeriesMarkers,
   CrosshairMode,
   type IChartApi,
   type ISeriesApi,
   type IPriceLine,
-  type ISeriesMarkersPluginApi,
   type UTCTimestamp,
   type SeriesMarker,
   type Time,
@@ -86,7 +81,6 @@ export default function ChartModule() {
   const subChartRef = useRef<IChartApi | null>(null)
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volRef = useRef<ISeriesApi<'Histogram'> | null>(null)
-  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
   const fullRef = useRef<Candle[]>([])
   const startRef = useRef(0) // index awal window di full
   const endRef = useRef(0) // index akhir (eksklusif) — berubah saat replay
@@ -125,8 +119,9 @@ export default function ChartModule() {
     setMagnetState(m)
   }
 
+  // Menggunakan API bawaan lightweight-charts secara langsung
   const refreshMarkers = useCallback(() => {
-    markersRef.current?.setMarkers([...indicatorMarkersRef.current, ...replayMarkersRef.current])
+    candleRef.current?.setMarkers([...indicatorMarkersRef.current, ...replayMarkersRef.current])
   }, [])
 
   const rebuildMap = useCallback(() => {
@@ -137,7 +132,6 @@ export default function ChartModule() {
 
   /* ---------- Top Bar contextual ---------- */
   useEffect(() => {
-    // FIX: Cegah re-render/penimpaan jika tab ini sedang tidak aktif
     if (activeTab !== 'chart') return
 
     const indicatorScripts = scripts.filter((s) => s.type === 'indicator')
@@ -219,12 +213,9 @@ export default function ChartModule() {
       </div>,
     )
     
-    // Opsional: Hapus fungsi cleanup `return () => setTopBarCenter(null)`
-    // untuk mencegah race-condition tab saling mematikan TopBar.
-    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    activeTab, // FIX: Wajib menambahkan ini ke dependency array
+    activeTab,
     datasets,
     selectedPairId,
     chartTimeframe,
@@ -246,24 +237,25 @@ export default function ChartModule() {
       width: mainEl.current.clientWidth,
       height: mainEl.current.clientHeight,
     })
-    const candle = chart.addSeries(CandlestickSeries, {
+
+    // Menggunakan pemanggilan method bawaan (lebih aman saat build kompilasi)
+    const candle = chart.addCandlestickSeries({
       upColor: CANDLE_COLORS.up,
       downColor: CANDLE_COLORS.down,
       wickUpColor: CANDLE_COLORS.up,
       wickDownColor: CANDLE_COLORS.down,
       borderVisible: false,
     })
-    const vol = chart.addSeries(HistogramSeries, {
+
+    const vol = chart.addHistogramSeries({
       priceScaleId: 'vol',
       priceFormat: { type: 'volume' },
     })
     vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } })
-    const markers = createSeriesMarkers(candle, [])
 
     chartRef.current = chart
     candleRef.current = candle
     volRef.current = vol
-    markersRef.current = markers
 
     /* HUD dari crosshair */
     chart.subscribeCrosshairMove((param) => {
@@ -272,13 +264,12 @@ export default function ChartModule() {
       if (c) setHud({ o: c.open, h: c.high, l: c.low, c: c.close, v: c.volume, up: c.close >= c.open })
     })
 
-    /* Lazy loading linear: muat 1000 bar saat <100 bar dari ujung kiri */
+    /* Lazy loading linear */
     chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
       if (!range || syncingRef.current) return
       if (range.from < 100 && startRef.current > 0 && !replayRef.current.active) {
         extendBack(1000)
       }
-      // sinkron sub-window
       if (subChartRef.current) {
         syncingRef.current = true
         subChartRef.current.timeScale().setVisibleLogicalRange(range)
@@ -291,7 +282,6 @@ export default function ChartModule() {
       const candleSeries = candleRef.current
       if (!candleSeries || !param.point) return
 
-      // Replay SL/TP placement
       if (replayRef.current.active && pendingSlTpRef.current) {
         const price = snapPrice(param.point.y, param.point.x)
         if (price !== null) placeReplayLine(pendingSlTpRef.current, price)
@@ -348,7 +338,6 @@ export default function ChartModule() {
       chartRef.current = null
       candleRef.current = null
       volRef.current = null
-      markersRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -436,7 +425,7 @@ export default function ChartModule() {
       const ratio = (i - from) / (to - from)
       data.push({ time: c.time as UTCTimestamp, value: pa + (pb - pa) * ratio })
     }
-    const line = chart.addSeries(LineSeries, {
+    const line = chart.addLineSeries({
       color: '#FF9500',
       lineWidth: 2,
       priceLineVisible: false,
@@ -467,8 +456,16 @@ export default function ChartModule() {
     })
   }, [tool])
 
-  /* ---------- Indikator (script engine) ---------- */
-  const indicatorDataRef = useRef<Map<string, { markers?: SeriesMarker<Time>[]; series?: ISeriesApi<'Histogram' | 'Line'> }>>(new Map())
+  /* ---------- Indikator ---------- */
+  const indicatorDataRef = useRef<
+    Map<
+      string,
+      {
+        markers?: SeriesMarker<Time>[]
+        series?: ISeriesApi<'Histogram'> | ISeriesApi<'Line'>
+      }
+    >
+  >(new Map())
   const slLineRef = useRef<IPriceLine | null>(null)
   const tpLineRef = useRef<IPriceLine | null>(null)
   const replayRealizedRef = useRef(0)
@@ -477,7 +474,6 @@ export default function ChartModule() {
     const view = fullRef.current.slice(startRef.current, endRef.current)
     if (!view.length) return
 
-    // bersihkan indikator yang dinonaktifkan
     for (const [id, entry] of indicatorDataRef.current) {
       if (!activeIndicators.includes(id)) {
         if (entry.series && subChartRef.current) subChartRef.current.removeSeries(entry.series)
@@ -508,8 +504,8 @@ export default function ChartModule() {
             if (prev?.series) subChartRef.current.removeSeries(prev.series)
             const hasColor = (e.data.series as { color?: string }[]).some((p) => p.color)
             const series = hasColor
-              ? subChartRef.current.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false })
-              : subChartRef.current.addSeries(LineSeries, {
+              ? subChartRef.current.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false })
+              : subChartRef.current.addLineSeries({
                   color: '#007AFF',
                   lineWidth: 2,
                   priceLineVisible: false,
@@ -540,7 +536,6 @@ export default function ChartModule() {
   /* ---------- Sub-chart lifecycle ---------- */
   useEffect(() => {
     if (!subVisible || !subEl.current || subChartRef.current) {
-      // resize chart utama saat layout berubah
       setTimeout(() => {
         if (mainEl.current && chartRef.current) {
           chartRef.current.resize(mainEl.current.clientWidth, mainEl.current.clientHeight)
